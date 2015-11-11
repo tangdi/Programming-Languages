@@ -140,21 +140,9 @@ in
   run (card_list, moves, [])
 end
 
+(* this is DP way, but I am not sure whether its correct... *)
 fun score_challenge(held_cards: card list, goal: int)=
-
 let
-  (*
-  fun least_preliminary_score(held_cards: card list, goal: int) =
-  case held_cards of
-       (_, Ace) :: cl2 => let (sum, score) = least_preliminary_score(cl2, goal)
-                          in
-                            if sum >= goal then (sum+1, score + 3*1)
-                            else if sum + 11 <= goal then (sum +11, score -11)
-                            else if 3 * (sum+11 -goal) <= (goal - (sum+1))
-                            then (sum+11, 3 * (sum+11-goal))
-                            else (sum+1, goal -sum -1)
-                          end
-*)
   fun preliminary_score(sum: int) =
    if sum > goal then 3*(sum-goal) else goal-sum
 
@@ -189,6 +177,7 @@ in
 end
 
 
+(* this is brute-force way *)
 fun score_challenge2(held_cards: card list, goal: int)=
 
 let
