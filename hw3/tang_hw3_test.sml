@@ -63,3 +63,17 @@ match(Const 1, ConstP 1) = SOME [] ;
 
 first_match Unit [UnitP] = SOME [];
 first_match Unit [ConstP 6] = NONE;
+typecheck_patterns([("c", "t", IntT)], [ConstructorP("c", ConstP 5)]) = SOME (Datatype
+"t");
+typecheck_patterns([("c", "t", IntT)], [TupleP [ConstP 5, UnitP]]) = SOME (TupleT [IntT,
+UnitT]);
+typecheck_patterns([], [TupleP [ConstP 5, UnitP]]) = SOME (TupleT [IntT, UnitT]);
+
+typecheck_patterns([("c", "t", Datatype "s")], [ConstructorP("c", ConstructorP
+("s", UnitP))]) = NONE;
+typecheck_patterns([("s", "s", Anything),("c", "t", Datatype "s")], [ConstructorP("c", ConstructorP
+("s", UnitP))]) = SOME(Datatype "t");
+
+typecheck_patterns([], [TupleP [ConstP 5, UnitP], TupleP [Wildcard, Wildcard] ]) = SOME (TupleT [IntT, UnitT]);
+typecheck_patterns([], [TupleP [ConstP 5, UnitP], TupleP [Wildcard, Wildcard],
+TupleP [Wildcard] ]) = NONE;

@@ -124,3 +124,116 @@ fun match (valu, pattern) =
 
 fun first_match valu p_list =
   SOME (first_answer (fn (p) => match (valu, p)) p_list) handle NoAnswer => NONE
+
+fun typecheck_patterns (datatype_constructor_list, p_list) =
+let
+  fun extract_value_from_option_list (option_list) =
+    case option_list of
+         [] => SOME []
+       | h::rest => case h of
+                         NONE => NONE
+                       | SOME value =>
+                           let val rest_list_option =
+                           extract_value_from_option_list(rest)
+                           in
+                             case rest_list_option of
+                                  NONE => NONE
+                                | SOME rest_list => SOME (value::rest_list)
+                           end
+
+  fun generate_lenient_type(type_pair) =
+  let
+    fun type_pair_list_check (type_pair_list) =
+      case type_pair_list of
+           [] => SOME []
+         | pair::rest_pairs =>
+             let val result = generate_lenient_type(pair)
+             in
+               case result of
+                    NONE => NONE
+                  | SOME t => let val rest_result = type_pair_list_check (rest_pairs)
+                              in
+                                case rest_result of
+                                     NONE => NONE
+                                   | SOME l => SOME (t::l)
+                              end
+
+             end
+  in
+    case type_pair of
+         (Anything,t2) => SOME t2
+       | (t1, Anything) => SOME t1
+       | (UnitT, UnitT) => SOME UnitT
+       | (IntT, IntT) => SOME IntT
+       | (Datatype name1, Datatype name2) => if name1 = name2 then SOME (Datatype name1) else NONE
+       | (TupleT type_list1, TupleT type_list2) => (if (List.length type_list1) <>
+         (List.length type_list2) then NONE else
+           let val result = type_pair_list_check (ListPair.zip (type_list1, type_list2))
+           in
+           case result of
+                NONE => NONE
+              | SOME type_list => SOME (TupleT type_list)
+           end
+           )
+       | _ => NONE
+  end
+
+
+  fun pattern_to_type datatype_constructor_list p =
+
+    case p of
+           Wildcard => SOME Anything
+         | UnitP => SOME UnitT
+         | ConstP i => SOME IntT
+         | Variable s => SOME Anything
+         | ConstructorP (s1, cp) =>
+             let
+               val construct = List.find (fn (constructor_name, _, _) =>
+               constructor_name = s1) datatype_constructor_list
+             in
+               case construct of
+                    NONE => NONE
+                  | SOME (constructor_name, datetype_name, argument_type) =>
+                      let
+                        val converted_type_option = pattern_to_type datatype_constructor_list cp
+                      in
+                        case converted_type_option of
+                             NONE => NONE
+                           | SOME converted_type =>
+                               let val lenient_result =
+                               generate_lenient_type(argument_type, converted_type)
+                               in
+                                 case lenient_result of
+                                      NONE => NONE
+                                    | SOME lenient_type => SOME (Datatype datetype_name)
+                               end
+
+                      end
+             end
+         | TupleP ps =>
+             let
+               val types_option = extract_value_from_option_list(List.map (pattern_to_type
+               datatype_constructor_list) ps)
+             in
+               case types_option of
+                    NONE => NONE
+                  | SOME types => SOME(TupleT types)
+             end
+
+in
+  case p_list of
+       [] => NONE
+     | _ => List.foldl (fn (current, last_value) =>
+         case last_value of
+              NONE => NONE
+            | SOME before_type =>
+                let
+                  val current_type_option = pattern_to_type datatype_constructor_list current
+                in
+                  case current_type_option of
+                       NONE => NONE
+                     | SOME current_type => generate_lenient_type(before_type, current_type)
+                end
+         )
+         (SOME Anything) p_list
+end
