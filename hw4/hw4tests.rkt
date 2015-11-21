@@ -91,4 +91,4 @@
 ; should be (cons 4 5)
 (define vector-assoc-test3 (vector-assoc 4 (vector (cons 1 2) 3 (cons 4 5))))
 
-(define cached-assoc-test1 (cached-assoc (list (list 1 2) (list 3 4) (list 5 6)) 6))
+(define cached-assoc-test1 (cached-assoc (list (list 1 2) (list 3 4) (list 5 6)) 2))
